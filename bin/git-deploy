@@ -1,0 +1,277 @@
+#!/usr/bin/env bash
+#
+# https://gist.github.com/beporter/8074237fa5a71f77dc5c
+# beporter@users.sourceforge.net
+# 2015-09-14
+
+
+#---------------------------------------------------------------------
+usage ()
+{
+	cat <<EOT
+
+${0##*/}
+    Convenience wrapper to fast-forward a local branch up to another
+    local branch and push it to the default remote (origin.)
+
+    Intended to be used with a git flow where specific branches
+    represent deployed versions of the app or specific merge
+    targets. For example, developers target a \`dev\` branch for
+    their topic work, a demo site runs against a \`staging\` branch,
+    and the production site tracks \`master\`. Dev is
+    usually the tip of the repo, with staging trailing somewhat
+    behind with finished but not yet "live" features being tested,
+    and master trails farther behind representing the stable code
+    that's been fully pushed to production. In this setup, dev
+    "feeds" staging, and staging feeds master. Conversely, master
+    "targets" its updates from staging and staging targets dev.
+
+    This command automates the following steps:
+
+    - Make sure the working dir is clean (abort if not).
+    - Process command line args:
+        - No args? Active branch is ahead branch; use
+          configured deploy values to determine the "target"
+          branch.
+        - 1 arg? Arg is the to-ff branch; use configured
+          deploy values to determine the feed branch.
+        - 2 args? First arg is the ahead branch, second arg
+          is the to-ff branch. (no configs consulted or
+          updated)
+    - Trigger a pre-deploy hook script, if present and executable,
+      passing the ahead branch and the to-ff branch as the first
+      and second args. If this script exits non-zero, the rest of
+      the deploy process is aborted.
+    - Make sure a local tracking branch exists for both branches.
+    - Make a note of the current "starting" branch.
+    - Switch to the to-ff branch.
+    - Merge the ahead branch into the to-ff, enforcing ff-only.
+    - Push the to-ff branch to the origin.
+    - Switch back to the starting branch.
+    - Trigger a post-deploy hook script, if present and executable,
+      passing the ahead branch and the to-ff branch as the first
+      and second args.
+
+Usage:
+    ${0##*/} [-h]
+      Look up the "target" branch for the currently checked out
+      branch and fast-forward it.
+
+      -h Print this help message.
+
+    ${0##*/} <to-ff branch>
+      Look up the "feed" branch for the named branch and
+      fast-forward up to it.
+
+    ${0##*/} <ahead branch> <to-ff branch>
+      Fast-forward the to-ff branch up to the ahead branch.
+
+Configuration:
+    The script uses "target" and "feed" settings from the local
+    repo's .git/config to determine the assoications between
+    branches. If the necessary config value isn't set and isn't
+    provided on the command line, the script will prompt for it
+    and save the config for future use.
+
+Installation:
+    Save this script as \`git-deploy\` anywhere in your \$PATH
+    and make it executable.
+
+EOT
+
+	exit ${1:-0}  # Exit with code 0 unless an arg is passed to the method.
+}
+if [ "$1" = '-h' ]; then
+	usage
+fi
+
+
+#---------------------------------------------------------------------
+# Echo to stderr.
+echoerr() {
+	cat <<< "$@" 1>&2;
+}
+
+#---------------------------------------------------------------------
+# Uppercase the first letter in the provided string.
+#
+# Must be called like:   $(_ucfirst "$VAR_TO_CHANGE")
+#
+# $1 = The string to manipulate.
+ucfirst() {
+	echo "$(tr '[:lower:]' '[:upper:]' <<< ${1:0:1})${1:1}"
+}
+
+#---------------------------------------------------------------------
+# Determine if the local working directory is "clean" compared to
+# the git index.
+#
+# Ref: https://stackoverflow.com/a/2659808/70876
+_git_local_changes() {
+	# Avoid some “false positives” caused by mismatching stat(2)
+	# information in subsequent commands.
+	git update-index -q --refresh || return 1
+
+	# To check whether a repository has staged changes (not yet
+	# committed).
+	git diff-index --quiet --cached HEAD || return 1
+
+	# To check whether a working tree has changes that could be
+	# staged.
+	git diff-files --quiet || return 1
+
+	# To check whether the combination of the index and the
+	# tracked files in the working tree have changes with respect
+	# to HEAD.
+	git diff-index --quiet HEAD || return 1
+
+	return 0
+
+	# Check for For "untracked and unignored" files. (These checks
+	# won't stop switching branches or FFing so skip them.)
+	git ls-files --exclude-standard --others --error-unmatch . >/dev/null 2>&1; ec=$?
+	if test "$ec" = 0; then
+		# some untracked files
+		return 1
+	elif test "$ec" = 1; then
+		# no untracked files
+		return 0
+	else
+		# error from ls-files
+		return 1
+	fi
+}
+
+#---------------------------------------------------------------------
+# Check the provided branch name. There must be a remote branch
+# named after it. If there is, a local tracking branch must exist,
+# and is created if it does not. If these checks pass, returns 0
+# (indicating success.)
+#
+# $1 = name of branch to check for or create if necessary.
+# $2 = Name of branch to switch back to if $1 needed to be created.
+_git_hydrate_tracking_branch() {
+	# If there's a local branch with the correct name, we're all
+	# set already.
+	if git show-ref --quiet --verify "refs/heads/$1"; then
+		echoerr "## Tracking branch exists for origin/$1."
+		return 0
+	fi
+
+	# If we can create a tracking branch, switch back to the
+	# original and return success.
+	if git checkout --quiet --track -b "$1" "origin/$1"; then
+		echoerr "## Creating tracking branch for origin/$1."
+		git checkout --quiet "$2"
+		return 0
+	fi
+
+	# Couldn't find a local branch and couldn't create one.
+	# Return failure.
+	return 1
+}
+
+
+#---------------------------------------------------------------------
+# Prompt the user for a branch name and commit it to the local
+# .git/config file. Must be called as
+# $(_git_fetch_or_prompt_and_save_config ['feed'|'target'] [EXISTING_BRANCH])
+#
+# $1 = Type of branch to get from the user. Either 'feed' or 'target'.
+# $2 = The branch name we already know. Will be used when saving configs.
+_git_fetch_or_prompt_and_save_config() {
+	BRANCH_TYPE=$1
+	EXISTING_BRANCH=$2
+	GIT_CONFIG_KEY="deploy.${EXISTING_BRANCH}-${BRANCH_TYPE}"
+
+	# First check in the local git config. If it's there, just return it.
+	ASSOC_BRANCH=$( git config --local --get $GIT_CONFIG_KEY 2>/dev/null )
+	if [ "$?" -eq "0" ]; then
+		echo $ASSOC_BRANCH
+		return
+	fi
+
+	# Otherwise prompt user, making sure the input exists.
+	echoerr "!! No $BRANCH_TYPE branch found for \`$EXISTING_BRANCH\`."
+
+	BRANCH_FOUND=1
+	until [ "$BRANCH_FOUND" -eq 0 ]; do
+		read -p ">> Enter $BRANCH_TYPE branch for \`$EXISTING_BRANCH\`: " ASSOC_BRANCH
+		_git_hydrate_tracking_branch $ASSOC_BRANCH $ACTIVE_BRANCH
+		BRANCH_FOUND=$?
+	done
+
+	# Write the value to the local config so it will be available next time.
+	if git config --local $GIT_CONFIG_KEY $ASSOC_BRANCH; then
+		echoerr "## $(ucfirst "${BRANCH_TYPE}") branch \`$ASSOC_BRANCH\` saved for \`$EXISTING_BRANCH\`."
+	else
+		echoerr "!! Failed to save $BRANCH_TYPE branch \`$ASSOC_BRANCH\` for \`$EXISTING_BRANCH\`."
+	fi
+
+	# Spit out the new branch name for capture and return.
+	echo $ASSOC_BRANCH
+	return
+}
+
+
+
+#---------------------------------------------------------------------
+# main()
+
+
+# Make convenience functions available to sub-shells.
+export -f echoerr
+export -f _git_local_changes
+
+
+# Abort if working dir is not clean.
+if ! _git_local_changes; then
+	echoerr "!! Working directory is not clean. Please commit or stash before continuing."
+	git status
+	exit 2
+fi
+
+
+# Make a note of the current "starting" branch.
+ACTIVE_BRANCH=$( git rev-parse --quiet --abbrev-ref HEAD 2>/dev/null )
+
+
+# Handle command line args, if present.
+if [ "$#" -gt 1 ]; then
+	AHEAD_BRANCH=$1
+	BRANCH_TO_FF=$2
+elif [ "$#" -eq 1 ]; then
+	BRANCH_TO_FF=$1
+	AHEAD_BRANCH=$(_git_fetch_or_prompt_and_save_config 'feed' $BRANCH_TO_FF)
+	_git_hydrate_tracking_branch $BRANCH_TO_FF $ACTIVE_BRANCH
+else
+	AHEAD_BRANCH=$ACTIVE_BRANCH
+	BRANCH_TO_FF=$(_git_fetch_or_prompt_and_save_config 'target' $AHEAD_BRANCH)
+fi
+
+
+# Trigger a pre-deploy script, if present. If exit is >0, abort the rest.
+if [ -x ".git/hooks/pre-deploy" ] && ! .git/hooks/pre-deploy $AHEAD_BRANCH $BRANCH_TO_FF; then
+	echoerr "!! Pre-deploy script exited non-zero. Aborting deploy."
+	exit $?
+fi
+
+
+# Checkout the branch to be updated, merge the previously-active
+# (or named) branch, and push to origin.
+echoerr "## Fast-forwarding $BRANCH_TO_FF up to $AHEAD_BRANCH and pushing to origin."
+
+git checkout --quiet $BRANCH_TO_FF \
+ && git merge --quiet --ff-only $AHEAD_BRANCH \
+ && git push --quiet origin $BRANCH_TO_FF 2>/dev/null \
+
+git checkout --quiet $ACTIVE_BRANCH
+
+
+# Trigger a post-deploy script, if present.
+if [ -x ".git/hooks/post-deploy" ]; then
+	.git/hooks/post-deploy $AHEAD_BRANCH $BRANCH_TO_FF
+fi
+
+
+echoerr "## Done."

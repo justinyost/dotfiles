@@ -1,0 +1,8 @@
+// Settings in here override those in "Default/Preferences.sublime-settings",
+// and are overridden in turn by syntax-specific settings.
+{
+	"color_scheme": "Packages/Color Scheme - Default/iPlastic.tmTheme",
+	"font_face": "Calynda",
+	"font_size": 20,
+	"highlight_line": true
+}

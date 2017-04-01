@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Shortcut SSH connection script.
+
+SSH_USER=futura
+SSH_HOST=futuraroyalties.com
+SSH_PORT=2222
+SSH_KEYFILE="/Users/justinyost/.ssh/loadsys_id_rsa.pub"
+SSH_FLAGS="-ACt"
+
+# Check the number of command line args.
+if [ "$#" -gt 0 ]; then
+    # Only perform the provided commands and exit.
+    # (Used for git-deploy's post-deploy hook script.)
+    SSH_COMMANDS="cd ~/clients_html; $@"
+else
+    # Start an interactive session.
+    SSH_COMMANDS=""
+fi
+
+# Execute the ssh connection and commands.
+ssh ${SSH_FLAGS} -i ${SSH_KEYFILE} ${SSH_USER}@${SSH_HOST} -p ${SSH_PORT} "${SSH_COMMANDS}" <&0

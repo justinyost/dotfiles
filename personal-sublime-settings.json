@@ -1,0 +1,89 @@
+{
+	"added_words":
+	[
+		"Unprocessable",
+		"versioning",
+		"interoperable",
+		"bolded",
+		"parsable",
+		"siloed",
+		"namespaces",
+		"namespaced",
+		"namespace",
+		"Levenshtein"
+	],
+	"binary_file_patterns":
+	[
+		"*.dds",
+		"*.eot",
+		"*.gif",
+		"*.ico",
+		"*.jar",
+		"*.jpeg",
+		"*.jpg",
+		"*.pdf",
+		"*.png",
+		"*.swf",
+		"*.tga",
+		"*.ttf",
+		"*.zip",
+		"node_modules/**"
+	],
+	"bold_folder_labels": true,
+	"caret_style": "phase",
+	"color_scheme": "Packages/Solarized Color Scheme/Solarized (dark).tmTheme",
+	"detect_slow_plugins": true,
+	"draw_minimap_border": true,
+	"draw_white_space": "selection",
+	"ensure_newline_at_eof_on_save": true,
+	"fallbackEncoding": "UTF-8",
+	"file_exclude_patterns":
+	[
+		".DS_Store",
+		"dump.rdb"
+	],
+	"findreplace_small": true,
+	"folder_exclude_patterns":
+	[
+		".sass-cache",
+		".git",
+		".hg",
+		".svn"
+	],
+	"font_face": "Fira Code",
+	"font_options":
+	[
+		"subpixel_antialias"
+	],
+	"font_size": 16.0,
+	"highlight_line": true,
+	"highlight_modified_tabs": true,
+	"hot_exit": false,
+	"ignored_packages":
+	[
+		"LastModifiedIndicator",
+		"Vintage"
+	],
+	"ignored_words":
+	[
+		"Versioning"
+	],
+	"line_padding_bottom": 1,
+	"line_padding_top": 1,
+	"margin": 2,
+	"remember_open_files": false,
+	"rulers":
+	[
+		80,
+		120
+	],
+	"soda_classic_tabs": true,
+	"spell_check": true,
+	"tab_size": 2,
+	"tabs_medium": true,
+	"translate_tabs_to_spaces": false,
+	"trim_automatic_white_space": true,
+	"trim_trailing_white_space_on_save": true,
+	"word_wrap": true,
+	"wrap_width": 120
+}

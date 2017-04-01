@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Shortcut SSH connection script.
+# Demonstrates how to pass commands to a different *remote* user
+# account while still retaining the ability to use the script as
+# a shortcut for making an interactive connection.
+
+SSH_USER=ubuntu
+SSH_HOST=ec2-52-25-100-229.us-west-2.compute.amazonaws.com
+SSH_PORT=22
+SSH_KEYFILE="/Users/justinyost/.ssh/snfi-master.pub"
+SSH_FLAGS="-ACt"
+
+# Check the number of command line args.
+if [ "$#" -gt 0 ]; then
+    # Only perform the provided commands and exit.
+    # (Used for git-deploy's post-deploy hook script.)
+    SSH_COMMANDS="cd /var/www; $@"
+else
+    # Start an interactive session.
+    SSH_COMMANDS=""
+fi
+
+# Execute the ssh connection and commands.
+ssh ${SSH_FLAGS} -i ${SSH_KEYFILE} ${SSH_USER}@${SSH_HOST} -p ${SSH_PORT} "${SSH_COMMANDS}" <&0

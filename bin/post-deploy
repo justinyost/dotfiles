@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Save this script in .git/hooks/post-deploy and make it executable.
+# $1 is the feed branch name. $2 is the target branch name.
+# The functions `echoerr` and `_git_local_changes` are available from git-deploy.
+#
+# A "generic" post-deploy hook script intended to connect to the server using a
+# "conventional" command name and run a deploy script on that server to update the code.
+#
+# Expects a command (or alias) to be available from PATH in the form of
+# `${PROJECT_ROOT_NAME}_${TARGET_BRANCH} $TARGET_BRANCH` that provides command line
+# access to the target environment's server and starts you in the corresponding project
+# root directory.
+
+
+echoerr "## Executing post-deploy hook script."
+
+FEED_BRANCH=${1?"First argument must contain the feed branch name."}
+TARGET_BRANCH=${2?"Second argument must contain the target branch name."}
+PROJECT_ROOT_NAME="$( basename "`pwd`" )"
+SERVER_CONNECT="${PROJECT_ROOT_NAME}_${TARGET_BRANCH}"
+DEPLOY_COMMANDS=". ~/.profile; bin/deploy; exit;"
+
+if [ -z "$(command -v $SERVER_CONNECT)" ]; then
+	echoerr "!! Server connect command \`$SERVER_CONNECT\` is not available."
+	exit 10
+fi
+
+$SERVER_CONNECT "$DEPLOY_COMMANDS"

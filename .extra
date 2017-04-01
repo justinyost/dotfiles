@@ -1,0 +1,120 @@
+# System Exports
+export EDITOR="/Users/justinyost/bin/subl -w"
+export GOOGLE_CHROME="Google Chrome"
+export FIREFOX="Firefox"
+export DEFAULT_BROWSER="$GOOGLE_CHROME"
+export VAGRANT_DEFAULT_PROVIDER="virtualbox"
+export ATLAS_TOKEN="iRhFjdNulifOpg.atlasv1.lR8lezJgba0hq3dl1cQYCSkybSdEg0TfIpLqZFzmSaD5AS8QqzvxDFPB1jGr8LtW0Zc"
+export VISUAL="/Users/justinyost/bin/subl"
+
+# Path Export
+export PATH="$HOME/bin:/usr/local/sbin:$PATH";
+
+# Git credentials
+# Not in the repository, to prevent people from accidentally committing under my name
+GIT_AUTHOR_NAME="Justin Yost"
+GIT_COMMITTER_NAME="$GIT_AUTHOR_NAME"
+git config --global user.name "$GIT_AUTHOR_NAME"
+GIT_AUTHOR_EMAIL="self@justinyost.com"
+GIT_COMMITTER_EMAIL="$GIT_AUTHOR_EMAIL"
+git config --global user.email "$GIT_AUTHOR_EMAIL"
+git config --global core.editor "$EDITOR"
+git config --global alias.up 'pull --rebase --autostash'
+git config --global github.user "justinyost"
+git config --global color.ui true
+git config --global diff.exif.textconv exiftool
+
+# GPG Setup
+# https://gist.github.com/danieleggert/b029d44d4a54b328c0bac65d46ba4c65
+git config --global gpg.program `which gpg`
+git config --global user.signingkey D007FC87
+git config --global commit.gpgsign false
+
+
+# SShuttle VPN Connection
+alias ssh-vpn="sshuttle --dns -r forward@streisand 0/0 -vv"
+
+# Other Functions
+
+# List files when changing directories
+function cd()
+{
+		if [ -z "$*" ]; then
+	 destination=~
+		else
+	destination=$*
+		fi
+		builtin cd "${destination}" && ls
+}
+
+
+# Aliases
+
+# Network aliases
+alias network-test-goog="sudo mtr -n 8.8.8.8"
+alias network-test-goog="sudo mtr -n justinyost.com"
+
+# SSH Aliases
+alias ssh="ssh -o TCPKeepAlive=no -o ServerAliveInterval=15"
+alias ssh-linode="ssh -p 22 justinyost@li1099-207.members.linode.com"
+alias ssh-loadsysdev="ssh -p 22 justin@loadsysdev.com"
+alias ssh-stevegeek="ssh -p 22 stevgeek@198.252.73.142"
+alias ssh-streisand="ssh -D 8080 forward@streisand"
+
+# cd Aliases
+alias site="cd ~/Sites"
+alias siteloadsys="cd ~/Sites/loadsys/"
+
+# Vagrant aliases
+alias vagrant-sup="vagrant up --provider=$VAGRANT_DEFAULT_PROVIDER; vagrant ssh;"
+alias vagrant-upvb="vagrant up --provider=virtualbox"
+alias vagrant-upvm="vagrant up --provider=vmware_fusion"
+alias vagrant-supvb="vagrant up --provider=virtualbox ; vagrant ssh"
+alias vagrant-supvm="vagrant up --provider=vmware_fusion ; vagrant ssh"
+alias vagrant-down="vagrant halt"
+alias vagrant-destroy="vagrant destroy; sudo ~/bin/vmnetshop.sh; rm ./Lib/puphpet/files/dot/ssh/id_*; rm ./Lib/puphpet/files/dot/ssh/root_*; rm -rf ./.vagrant/*;"
+alias vagrant-global="vagrant global-status --prune"
+alias vagrant-fix-network="sudo ~/bin/vmnetshop.sh"
+
+# Open Sublime and Gittower for the current directory
+alias openrepo="$VISUAL ./ && gittower ./ && git open"
+
+# Open CodeCoverage and Docs
+alias openreports="open ./tmp/coverage/html/index.html; open ./tmp/docs/index.html; open -a \"${DEFAULT_BROWSER}\" ./tmp/code-sniffs/report-full.txt;"
+
+# Open CodeCoverage and Docs
+alias openreports="open ./tmp/coverage/html/index.html; open ./tmp/docs/index.html; open -a \"${DEFAULT_BROWSER}\" ./tmp/code-sniffs/report-full.txt;"
+
+# Alias IPV6 Fixes
+alias ipv6-disable="networksetup -setv6off Wi-Fi"
+alias ipv6-enable="networksetup -setv6automatic Wi-Fi"
+
+# Common Git Aliases
+alias git-leaderboard="git shortlog -sn"
+#alias git-duntoday="git log --since='00:00:00' --all --no-merges --oneline --author=$(git config --get user.email)"
+#alias git-recap="git log --since='2.days' --all --no-merges --oneline --author=$(git config --get user.email)"
+
+# Bash Completion for Vagrant
+
+if [ -f `brew --prefix`/etc/bash_completion.d/vagrant ]; then
+	source `brew --prefix`/etc/bash_completion.d/vagrant
+fi
+
+if [ -f $(brew --prefix)/etc/bash_completion ]; then
+	. $(brew --prefix)/etc/bash_completion
+fi
+
+# This will add bash tab completion to the `git deploy` command.
+#
+# Add the following custom completion function to your
+# `~/.profile` or wherever will get sourced.
+#
+# NOTE: This is limited to pre-configured feed/target branches
+# in the current repo's `.git/config` file.
+
+function _git_deploy() {
+	local cur=${COMP_WORDS[COMP_CWORD]}
+	local options=$(git config --local --get-regexp deploy\. | cut -f2 -d ' ')
+	COMPREPLY=( $(compgen -W "$options" -- $cur) )
+}
+

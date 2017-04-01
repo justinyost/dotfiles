@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Shortcut SSH connection script.
+
+SSH_USER=ubuntu
+SSH_HOST="ftp.allstarwms.com"
+SSH_PORT=22
+SSH_KEYFILE="/Users/justinyost/.ssh/allstar-wms-prod.pem"
+SSH_FLAGS="-ACt"
+
+ssh ${SSH_FLAGS} -i ${SSH_KEYFILE} ${SSH_USER}@${SSH_HOST} -p ${SSH_PORT} "$@" <&0
