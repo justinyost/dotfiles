@@ -43,7 +43,6 @@ brew install narwhal
 # Install more recent versions of some macOS tools.
 brew install vim --override-system-vi
 brew install homebrew/dupes/grep
-brew install homebrew/dupes/openssh
 brew install homebrew/dupes/screen
 brew install homebrew/php/php71 --with-gmp
 
@@ -100,6 +99,7 @@ brew install tree
 brew install vbindiff
 brew install webkit2png
 brew install zopfli
+brew install git-standup
 
 # Remove outdated versions from the cellar.
 brew cleanup

@@ -3,7 +3,11 @@ export EDITOR="/Users/justinyost/bin/subl -w"
 export GOOGLE_CHROME="Google Chrome"
 export FIREFOX="Firefox"
 export DEFAULT_BROWSER="$GOOGLE_CHROME"
+<<<<<<< HEAD
 export VAGRANT_DEFAULT_PROVIDER="virtualbox"
+=======
+export VAGRANT_DEFAULT_PROVIDER="vmware_fusion"
+>>>>>>> c89ad7b... Various Improvements
 export ATLAS_TOKEN="iRhFjdNulifOpg.atlasv1.lR8lezJgba0hq3dl1cQYCSkybSdEg0TfIpLqZFzmSaD5AS8QqzvxDFPB1jGr8LtW0Zc"
 export VISUAL="/Users/justinyost/bin/subl"
 
@@ -60,10 +64,21 @@ alias ssh-linode="ssh -p 22 justinyost@li1099-207.members.linode.com"
 alias ssh-loadsysdev="ssh -p 22 justin@loadsysdev.com"
 alias ssh-stevegeek="ssh -p 22 stevgeek@198.252.73.142"
 alias ssh-streisand="ssh -D 8080 forward@streisand"
+<<<<<<< HEAD
+=======
+alias ssh-phoenix-staging="ssh -p 22 forge@159.203.123.107"
+alias ssh-phoenix-master="ssh -p 22 root@159.203.76.72 -t 'cd /dockervols/phoenix/repo/; bash -l'"
+alias ssh-phoenix-master-lb="ssh -p 22 root@107.170.33.89"
+alias ssh-phoenix-prod-migrate="ssh -i ~/.ssh/phoenix-prod-migrate.pem -p 22 ubuntu@34.208.17.84"
+>>>>>>> c89ad7b... Various Improvements
 
 # cd Aliases
 alias site="cd ~/Sites"
 alias siteloadsys="cd ~/Sites/loadsys/"
+<<<<<<< HEAD
+=======
+alias sitewirecutter="cd ~/Sites/wirecutter/"
+>>>>>>> c89ad7b... Various Improvements
 
 # Vagrant aliases
 alias vagrant-sup="vagrant up --provider=$VAGRANT_DEFAULT_PROVIDER; vagrant ssh;"
@@ -82,8 +97,13 @@ alias openrepo="$VISUAL ./ && gittower ./ && git open"
 # Open CodeCoverage and Docs
 alias openreports="open ./tmp/coverage/html/index.html; open ./tmp/docs/index.html; open -a \"${DEFAULT_BROWSER}\" ./tmp/code-sniffs/report-full.txt;"
 
+<<<<<<< HEAD
 # Open CodeCoverage and Docs
 alias openreports="open ./tmp/coverage/html/index.html; open ./tmp/docs/index.html; open -a \"${DEFAULT_BROWSER}\" ./tmp/code-sniffs/report-full.txt;"
+=======
+# Open Phoenix Docs
+alias openphoenixdocs="open http://127.0.0.1:3000/; ./node_modules/.bin/aglio -i docs/endpoints.md -s"
+>>>>>>> c89ad7b... Various Improvements
 
 # Alias IPV6 Fixes
 alias ipv6-disable="networksetup -setv6off Wi-Fi"
@@ -94,6 +114,12 @@ alias git-leaderboard="git shortlog -sn"
 #alias git-duntoday="git log --since='00:00:00' --all --no-merges --oneline --author=$(git config --get user.email)"
 #alias git-recap="git log --since='2.days' --all --no-merges --oneline --author=$(git config --get user.email)"
 
+<<<<<<< HEAD
+=======
+# Alias Standup
+alias standup="cd ~/Sites/wirecutter/ && git standup"
+
+>>>>>>> c89ad7b... Various Improvements
 # Bash Completion for Vagrant
 
 if [ -f `brew --prefix`/etc/bash_completion.d/vagrant ]; then

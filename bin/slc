@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+#
+# slc
+#
+# Deployment management for https://github.com/thewirecutter/thewirecutter and
+# WP Engine.
+#
+# Creator: Rachel Baker <rbaker@thewirecutter.com>
+#
+# Contributors:
+# - Josh Eaton <josh@reaktivstudios.com> jjeaton
+# - Rachel Baker <rbaker@thewirecutter.com> rachelbaker
+
+# USAGE:
+# slc push <environment> - Deploy a branch to its related environment. <environment> can be either 'stage' or 'prod'.
+# slc back <message> - Backup the production environment on WP Engine. <message> is optional.
+
+export USERNAME=$( git config user.name );
+
+# main init function.
+function slc() {
+	if [ -z "$1" ]; then
+		usage
+	fi
+
+	action="$1";
+
+	if [[ "$action" = 'push' ]]; then
+		# slc push requires the <environment> argument.
+		if [ -z "$2" ]; then
+			_push_usage
+		fi
+
+		_push "$2"
+	elif [[ "$action" = 'back' ]]; then
+		message=${2-"before deployment"}
+		_back "$message"
+	else
+		usage
+	fi
+}
+
+function _push() {
+	environment="$1";
+	message="${USERNAME} deployed to ${environment}";
+
+	if [[ "$1" = 'stage' ]]; then
+		# deploy the develop branch to staging.
+		echo "Checking out the develop branch..."
+		git checkout develop || exit
+		git push origin develop
+		git push stage-multi develop
+
+		curl -X POST --data-urlencode 'payload={"text": "'"${message}"'"}' https://hooks.slack.com/services/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
+		echo ""
+		echo "Pushed develop to github and $1"
+	elif [[ "$1" = 'prod' ]]; then
+		# deploy the master branch to production.
+		echo "Checking out the master branch..."
+		git checkout master || exit
+		git push origin master
+		git push prod-multi master
+
+		curl -X POST --data-urlencode 'payload={"text": "'"${message}"'"}' https://hooks.slack.com/services/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
+		echo ""
+		echo "Pushed master to github and $1"
+	else
+		_push_usage
+	fi
+}
+
+function _back() {
+	WPE_WC_API_KEY="ee9692b2c8bb8d3b53e861fa9d74ff6c6f05ad3c"
+
+	NOTIFY_LIST="alldev%40thewirecutter.com"
+	ACCOUNT_NAME="thewirecutter5"
+	MESSAGE=$(urlencode "$1")
+
+	echo "https://api.wpengine.com/1.2/?method=checkpoint-create&account_name=$ACCOUNT_NAME&message=$MESSAGE&notify=$NOTIFY_LIST&wpe_apikey=$WPE_WC_API_KEY"
+	curl "https://api.wpengine.com/1.2/?method=checkpoint-create&account_name=$ACCOUNT_NAME&message=$MESSAGE&notify=$NOTIFY_LIST&wpe_apikey=$WPE_WC_API_KEY"
+}
+
+function usage {
+	echo ''
+	echo 'slc <action> <environment>'
+	echo 'slc push <environment> - Deploys the related branch to the given environment.'
+	echo 'slc back <environment> - Trigger WP Engine to perform a backup of the related environment.'
+	 kill -SIGINT $$
+}
+
+function _push_usage {
+	echo ''
+	echo 'slc push <environment> - Deploys the related branch to the given environment.'
+	echo 'slc push prod - Deploy the master branch to the production environment.'
+	echo 'slc push stage - Deploy the develop branch to the staging environment.'
+	kill -SIGINT $$
+}
+
+function urlencode() {
+	python -c "import sys, urllib as ul; print ul.quote_plus(sys.argv[1])" "$1"
+}
+
+function urldecode() {
+	python -c "import sys, urllib as ul; print ul.unquote_plus(sys.argv[1])" "$1"
+}
